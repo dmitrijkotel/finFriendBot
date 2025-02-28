@@ -25,3 +25,7 @@ skip_description_expenses_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Пропустить', callback_data='skip_expenses_categories_button')],
     [InlineKeyboardButton(text='Назад', callback_data='back_description_expenses_button')],
 ])
+
+back_create_transactions_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Отмена', callback_data='back_create_transactions_button')]
+])

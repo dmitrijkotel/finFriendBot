@@ -7,10 +7,8 @@ import aiosqlite
 from datetime import datetime
 import logging
 
-from budget.database import get_budgets_from_db
-from budget.functions import create_keyboard
 from budget.handlers.view_budget import budget_menu_finance
-from budget.keyboards import back_menu
+from budget.finance.keyboards import back_create_transactions_keyboard as back_trans
 
 
 # Настройка логирования
@@ -182,7 +180,7 @@ async def add_transaction_handler(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Ошибка: идентификатор категории или тип транзакции не найден.", show_alert=True)
         return
 
-    bot_message = await callback.message.edit_text("Введите сумму транзакции:")
+    bot_message = await callback.message.edit_text("Введите сумму транзакции:", reply_markup=back_trans)
     await state.update_data(bot_message_id=bot_message.message_id, category_id=category_id, transaction_type=transaction_type)
     await state.set_state(FormTransaction.waiting_for_amount)
     await callback.answer()
@@ -202,7 +200,8 @@ async def process_amount(message: Message, state: FSMContext):
             await message.bot.edit_message_text(
                 chat_id=message.chat.id,
                 message_id=bot_message_id,
-                text="Введите описание транзакции:"
+                text="Введите описание транзакции:",
+                reply_markup=back_trans
             )
 
         await state.set_state(FormTransaction.waiting_for_description)
@@ -213,7 +212,8 @@ async def process_amount(message: Message, state: FSMContext):
             await message.bot.edit_message_text(
                 chat_id=message.chat.id,
                 message_id=bot_message_id,
-                text="Пожалуйста, введите корректную сумму."
+                text="Пожалуйста, введите корректную сумму.",
+                reply_markup=back_trans
             )
 
 # Обработчик ввода описания транзакции
