@@ -8,7 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from budget.database import get_budget_details_db, get_budgets_from_db
 from budget.functions import create_keyboard
-from budget.handlers.view_budget import create_actions_budget_keyboard
+from budget.handlers.view_budget import create_actions_budget_keyboard, get_total_expense_by_budget, get_total_income_by_budget
 from budget.keyboards import back_menu
 
 view_expenses_category_router = Router()
@@ -120,10 +120,15 @@ async def back_from_all_expenses_categories_handler(callback: CallbackQuery, sta
 
 async def budget_menu_finance(event: Union[Message, CallbackQuery], budget_id):
     try:
+        total_income = await get_total_income_by_budget(budget_id)
+        total_expense = await get_total_expense_by_budget(budget_id)
+
+        balance = total_income - total_expense
+
         budget_details = await get_budget_details_db(budget_id)
         if budget_details:
             budget_name, description = budget_details
-            response_message = f"{budget_name}\nОписание: {description}" if description else f"{budget_name}"
+            response_message = f"Название:    {budget_name}\nОписание:    {description}\nБаланс:    {balance}₽" if description else f"Название:    {budget_name}\nБаланс:    {balance}₽"
         else:
             response_message = "Бюджет не найден."
 

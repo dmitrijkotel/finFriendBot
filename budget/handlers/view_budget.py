@@ -98,15 +98,22 @@ async def view_budget_handler(callback: CallbackQuery):
 # Обработчик для выбора бюджета
 @view_budget_router.callback_query(lambda call: call.data.isdigit())
 async def handle_budget_selection(callback: CallbackQuery, state: FSMContext):
+    
+
     try:
         await callback.answer()
         budget_id = int(callback.data)
         await state.update_data(budget_id=budget_id)  # Сохраняем budget_id в состоянии
 
+        total_income = await get_total_income_by_budget(budget_id)
+        total_expense = await get_total_expense_by_budget(budget_id)
+
+        balance = total_income - total_expense
+
         budget_details = await get_budget_details_db(budget_id)
         if budget_details:
             budget_name, description = budget_details
-            response_message = f"{budget_name}\nОписание: {description}" if description else f"{budget_name}"
+            response_message = f"Название:    {budget_name}\nОписание:    {description}\nБаланс:    {balance}₽" if description else f"Название:    {budget_name}\nБаланс:    {balance}₽"
         else:
             response_message = "Бюджет не найден."
 
@@ -118,10 +125,15 @@ async def handle_budget_selection(callback: CallbackQuery, state: FSMContext):
 
 async def budget_menu_finance(message: Message, budget_id, message_id=None):
     try:
+        total_income = await get_total_income_by_budget(budget_id)
+        total_expense = await get_total_expense_by_budget(budget_id)
+
+        balance = total_income - total_expense
+
         budget_details = await get_budget_details_db(budget_id)
         if budget_details:
             budget_name, description = budget_details
-            response_message = f"{budget_name}\nОписание: {description}" if description else f"{budget_name}"
+            response_message = f"Название:    {budget_name}\nОписание:    {description}\nБаланс:    {balance}₽" if description else f"Название:    {budget_name}\nБаланс:    {balance}₽"
         else:
             response_message = "Бюджет не найден."
 
