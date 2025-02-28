@@ -9,21 +9,9 @@ import logging
 
 from budget.database import get_budgets_from_db
 from budget.functions import create_keyboard
+from budget.handlers.view_budget import budget_menu_finance
 from budget.keyboards import back_menu
 
-async def menu_budgets(callback):
-    telegram_id = callback.from_user.id
-
-    await callback.answer()
-
-    budgets = await get_budgets_from_db(telegram_id)
-
-    if not budgets:
-        return await callback.message.answer("Нет доступных бюджетов.", reply_markup=back_menu)
-
-    keyboard = await create_keyboard(budgets)
-
-    await callback.message.edit_text("Выберите бюджет:", reply_markup=keyboard)
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -40,6 +28,7 @@ view_transactions_router = Router()
 class FormTransaction(StatesGroup):
     waiting_for_amount = State()
     waiting_for_description = State()
+    stop = State()
 
 # Функция для получения транзакций из базы данных
 async def get_transactions_from_db(category_id: int, transaction_type: str):
@@ -89,7 +78,9 @@ async def view_transactions(message: Message, category_id: int, transaction_type
 # Обработчик возврата в меню бюджетов
 @view_transactions_router.callback_query(F.data.endswith('_transactions_button'))
 async def back_to_categories_handler(callback: CallbackQuery, state: FSMContext):
-    await menu_budgets(callback)
+    user_data = await state.get_data()
+    budget_id = user_data.get('budget_id')
+    await budget_menu_finance(callback.message, budget_id, callback.message.message_id)
 
 # Обработчик выбора категории
 @view_transactions_router.callback_query(F.data.startswith('category_'))
@@ -262,18 +253,21 @@ async def create_transaction_description(message: Message, state: FSMContext):
                 text="Произошла ошибка при добавлении транзакции. Пожалуйста, попробуйте еще раз."
             )
         finally:
-            await state.clear()
+            await state.set_state(FormTransaction.stop)
 
 # Функция для создания клавиатуры возврата
 def create_return_keyboard():
     keyboard = InlineKeyboardBuilder()
-    keyboard.add(InlineKeyboardButton(text="Вернуться", callback_data="return_to_budgets"))
+    keyboard.add(InlineKeyboardButton(text="Вернуться", callback_data="return_to_finance_menu_budget"))
     return keyboard.as_markup()
 
 # Обработчик возврата в меню бюджетов
-@view_transactions_router.callback_query(F.data == "return_to_budgets")
+@view_transactions_router.callback_query(F.data == "return_to_finance_menu_budget")
 async def return_to_budgets_handler(callback: CallbackQuery, state: FSMContext):
-    await menu_budgets(callback)
+    user_data = await state.get_data()
+    budget_id = user_data.get('budget_id')
+
+    await budget_menu_finance(callback.message, budget_id, callback.message.message_id)
 
 # Обработчик возврата к списку транзакций
 @view_transactions_router.callback_query(F.data == 'back_from_transaction_detail')

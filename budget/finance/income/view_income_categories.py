@@ -64,20 +64,6 @@ async def view_income_categories(message: Message, budget_id: int):
     else:
         await message.edit_text("Выберите категорию дохода:", reply_markup=keyboard)
 
-async def menu_budgets(callback):
-    telegram_id = callback.from_user.id
-
-    await callback.answer()
-
-    budgets = await get_budgets_from_db(telegram_id)
-
-    if not budgets:
-        return await callback.message.answer("Нет доступных бюджетов.", reply_markup=back_menu)
-
-    keyboard = await create_keyboard(budgets)
-
-    await callback.message.edit_text("Выберите бюджет:", reply_markup=keyboard)
-
 @view_income_category_router.callback_query(F.data == 'back_income_categories_button')
 async def back_button_handler(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
