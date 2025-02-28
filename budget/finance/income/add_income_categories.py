@@ -5,6 +5,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
 from budget.finance.keyboards import back_income_categories_keyboard as kb_back
 from budget.finance.keyboards import skip_description_income_keyboard as skip_keyboard
+from budget.handlers.view_budget import budget_menu_finance
 
 create_income_category_router = Router()
 
@@ -12,6 +13,7 @@ create_income_category_router = Router()
 class CreateIncomeCategoryStates(StatesGroup):
     waiting_for_category_title = State()
     waiting_for_category_description = State()
+    stop = State()
 
 
 budget_id_g = 0
@@ -98,19 +100,23 @@ async def skip_description_handler(callback: CallbackQuery, state: FSMContext):
 
     description = None
 
-    # Редактируем сообщение бота
-    if bot_message_id is not None:
-        await callback.bot.edit_message_text(
-            chat_id=callback.from_user.id,
-            message_id=bot_message_id,
-            text="Описание категории пропущено.",
-            reply_markup=kb_back
-        )
+    # Добавляем категорию в БД
+    add_income_category_db(budget_id, category_name, description)
 
-    result = add_income_category_db(budget_id, category_name, description)
+    await state.set_state(CreateIncomeCategoryStates.stop)
 
-    await callback.answer(result)  # Отправляем результат пользователю
-    await state.clear()  # Очистка состояния после успешного создания категории
+    if bot_message_id:
+        # Передаём callback.message вместо callback
+        await budget_menu_finance(callback.message, budget_id, bot_message_id)
+    else:
+        # Если ID сообщения нет, отправляем новое меню и запоминаем его
+        sent_message = await budget_menu_finance(callback.message, budget_id)
+        await state.update_data(bot_message_id=sent_message.message_id)
+
+    # Закрываем всплывающее уведомление
+    await callback.answer()
+
+
 
 
 @create_income_category_router.message(CreateIncomeCategoryStates.waiting_for_category_description)
@@ -121,32 +127,22 @@ async def create_income_category_description(message: Message, state: FSMContext
     user_data = await state.get_data()
     category_name = user_data.get('category_name')
     budget_id = user_data.get('budget_id')
-    bot_message_id = user_data.get('bot_message_id')
 
     description = message.text
     print(f"Описание категории: {description}")  # Отладка
 
-    # Редактируем сообщение бота
-    if bot_message_id is not None:
-        try:
-            result = add_income_category_db(budget_id, category_name, description)
-            await message.bot.edit_message_text(
-                chat_id=message.chat.id,
-                message_id=bot_message_id,
-                text=result,
-                reply_markup=kb_back
-            )
-        except Exception as e:
-            print(f"Ошибка при добавлении категории: {e}")  # Логирование ошибки
-            await message.bot.edit_message_text(
-                chat_id=message.chat.id,
-                message_id=bot_message_id,
-                text="Произошла ошибка при добавлении категории. Попробуйте снова.",
-                reply_markup=kb_back
-            )
-    else:
-        # Если идентификатор сообщения бота не найден, отправляем новое сообщение
-        result = add_income_category_db(budget_id, category_name, description)
-        await message.answer(result, reply_markup=kb_back)
+    # Добавляем категорию в БД
+    add_income_category_db(budget_id, category_name, description)
 
-    await state.clear()  # Очистка состояния после успешного создания категории
+    await state.set_state(CreateIncomeCategoryStates.stop)
+
+    # Получаем ID старого сообщения бота
+    bot_message_id = user_data.get('bot_message_id')
+
+    if bot_message_id:
+        # Если ID есть — обновляем сообщение
+        await budget_menu_finance(message, budget_id, bot_message_id)
+    else:
+        # Если ID нет — просто отправляем меню и запоминаем его
+        sent_message = await budget_menu_finance(message, budget_id)
+        await state.update_data(bot_message_id=sent_message.message_id)

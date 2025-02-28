@@ -6,6 +6,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from budget.database import get_budgets_from_db 
+from budget.finance.expense.view_expenses_category import budget_menu_finance
 from budget.functions import create_keyboard
 from budget.keyboards import back_menu
 
@@ -78,8 +79,11 @@ async def menu_budgets(callback):
     await callback.message.edit_text("Выберите бюджет:", reply_markup=keyboard)
 
 @view_income_category_router.callback_query(F.data == 'back_income_categories_button')
-async def back_button_handler(callback: CallbackQuery):
-    await menu_budgets(callback)
+async def back_button_handler(callback: CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    budget_id = user_data.get('budget_id')
+
+    await budget_menu_finance(callback, budget_id)
 
 @view_income_category_router.callback_query(F.data == 'income_budget_button')
 async def view_income_categories_handler(callback: CallbackQuery, state: FSMContext):
@@ -112,3 +116,4 @@ async def back_from_all_income_categories_handler(callback: CallbackQuery, state
 
     await callback.message.delete()
     await view_income_categories(callback.message, budget_id)
+

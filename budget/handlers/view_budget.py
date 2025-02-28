@@ -1,3 +1,4 @@
+from typing import Union
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, InlineKeyboardButton, InlineKeyboardMarkup
@@ -55,8 +56,8 @@ async def create_actions_budget_keyboard(budget_id: int):
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text=f'Расходы ({total_expense}₽)', callback_data='expenses_budget_button'),
-            InlineKeyboardButton(text=f'Доходы ({total_income}₽)', callback_data='income_budget_button')
+            InlineKeyboardButton(text=f'  Расходы ({total_expense}₽)  ', callback_data='expenses_budget_button'),
+            InlineKeyboardButton(text=f'  Доходы ({total_income}₽)  ', callback_data='income_budget_button')
         ],
         [
             InlineKeyboardButton(text='Удалить', callback_data='delete_budget_button'),
@@ -106,7 +107,7 @@ async def handle_budget_selection(callback: CallbackQuery, state: FSMContext):
         budget_details = await get_budget_details_db(budget_id)
         if budget_details:
             budget_name, description = budget_details
-            response_message = f"{budget_name}\nОписание: {description}" if description else f"{budget_name}\n__________________________________________"
+            response_message = f"{budget_name}\nОписание: {description}" if description else f"{budget_name}"
         else:
             response_message = "Бюджет не найден."
 
@@ -115,6 +116,36 @@ async def handle_budget_selection(callback: CallbackQuery, state: FSMContext):
     except Exception as e:
         await callback.answer("Произошла ошибка. Попробуйте позже.")
         print(f"Ошибка при обработке запроса: {e}")
+
+async def budget_menu_finance(message: Message, budget_id, message_id=None):
+    try:
+        budget_details = await get_budget_details_db(budget_id)
+        if budget_details:
+            budget_name, description = budget_details
+            response_message = f"{budget_name}\nОписание: {description}" if description else f"{budget_name}"
+        else:
+            response_message = "Бюджет не найден."
+
+        keyboard = await create_actions_budget_keyboard(budget_id)
+
+        if message_id:
+            # Редактируем существующее сообщение
+            await message.bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=message_id,
+                text=response_message,
+                reply_markup=keyboard
+            )
+        else:
+            # Отправляем новое сообщение, если ID нет
+            sent_message = await message.answer(response_message, reply_markup=keyboard)
+            return sent_message
+
+    except Exception as e:
+        print(f"Ошибка при обновлении сообщения: {e}")
+
+
+
 
 # Обработчики для удаления бюджета
 @view_budget_router.callback_query(F.data == 'delete_budget_button')
@@ -129,8 +160,12 @@ async def confirm_delete_budget_handler(callback: CallbackQuery, state: FSMConte
     await delete_budget_function(callback, budget_id)
 
 @view_budget_router.callback_query(F.data == 'back_button_sure')
-async def cancel_delete_budget_handler(callback: CallbackQuery):
-    await menu_budgets(callback)
+async def cancel_delete_budget_handler(callback: CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    budget_id = user_data.get('budget_id')
+
+    # Передаем message_id текущего сообщения
+    await budget_menu_finance(callback.message, budget_id, callback.message.message_id)
 
 # Обработчики для возврата в меню
 @view_budget_router.callback_query(F.data == 'back_menu_budget_button')
@@ -143,8 +178,11 @@ async def edit_budget_handler(callback: CallbackQuery):
     await edit_budget_function(callback)
 
 @view_budget_router.callback_query(F.data == 'back_edit_budget_button')
-async def cancel_edit_budget_handler(callback: CallbackQuery):
-    await menu_budgets(callback)
+async def cancel_edit_budget_handler(callback: CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    budget_id = user_data.get('budget_id')
+
+    await budget_menu_finance(callback.message, budget_id, callback.message.message_id)
 
 # Обработчики для редактирования имени бюджета
 @view_budget_router.callback_query(F.data == 'edit_name_budget_button')
@@ -173,5 +211,23 @@ async def create_budget(callback: CallbackQuery):
     await menu_budgets(callback)
 
 @view_budget_router.callback_query(F.data == 'back_edit_name_budget_button')
-async def create_budget(callback: CallbackQuery):
-    await menu_budgets(callback)
+async def create_budget(callback: CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    budget_id = user_data.get('budget_id')
+
+    await budget_menu_finance(callback.message, budget_id, callback.message.message_id)
+
+@view_budget_router.callback_query(F.data == 'back_edit_description_budget_button')
+async def create_budget(callback: CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    budget_id = user_data.get('budget_id')
+    
+    await budget_menu_finance(callback.message, budget_id, callback.message.message_id)
+
+@view_budget_router.callback_query(F.data == 'back_description_expenses_button')
+async def create_budget(callback: CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    budget_id = user_data.get('budget_id')
+
+    await budget_menu_finance(callback.message, budget_id, callback.message.message_id)
+

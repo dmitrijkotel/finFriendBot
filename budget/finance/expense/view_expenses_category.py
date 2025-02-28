@@ -1,3 +1,4 @@
+from typing import Union
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
@@ -5,8 +6,9 @@ import aiosqlite
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from budget.database import get_budgets_from_db
+from budget.database import get_budget_details_db, get_budgets_from_db
 from budget.functions import create_keyboard
+from budget.handlers.view_budget import create_actions_budget_keyboard
 from budget.keyboards import back_menu
 
 view_expenses_category_router = Router()
@@ -78,8 +80,11 @@ async def menu_budgets(callback):
     await callback.message.edit_text("Выберите бюджет:", reply_markup=keyboard)
 
 @view_expenses_category_router.callback_query(F.data == 'back_expenses_categories_button')
-async def back_button_handler(callback: CallbackQuery):
-    await menu_budgets(callback)
+async def back_button_handler(callback: CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    budget_id = user_data.get('budget_id')
+
+    await budget_menu_finance(callback, budget_id)
 
 @view_expenses_category_router.callback_query(F.data == 'expenses_budget_button')
 async def view_expenses_categories_handler(callback: CallbackQuery, state: FSMContext):
@@ -112,3 +117,24 @@ async def back_from_all_expenses_categories_handler(callback: CallbackQuery, sta
 
     await callback.message.delete()
     await view_expenses_categories(callback.message, budget_id)
+
+async def budget_menu_finance(event: Union[Message, CallbackQuery], budget_id):
+    try:
+        budget_details = await get_budget_details_db(budget_id)
+        if budget_details:
+            budget_name, description = budget_details
+            response_message = f"{budget_name}\nОписание: {description}" if description else f"{budget_name}"
+        else:
+            response_message = "Бюджет не найден."
+
+        keyboard = await create_actions_budget_keyboard(budget_id)
+
+        if isinstance(event, CallbackQuery):  # Если это кнопка (CallbackQuery)
+            await event.message.edit_text(response_message, reply_markup=keyboard)
+        else:  # Если это обычное сообщение
+            await event.answer(response_message, reply_markup=keyboard)
+
+    except Exception as e:
+        if isinstance(event, CallbackQuery):
+            await event.answer("Произошла ошибка. Попробуйте позже.")
+        print(f"Ошибка при обработке запроса: {e}")

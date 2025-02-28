@@ -34,7 +34,7 @@ async def create_keyboard(budgets):
 
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
-from budget.keyboards import back_edit_name_budget_keyboard, back_complete_edit_description_keyboard, back_complete_edit_name_keyboard
+from budget.keyboards import back_edit_name_budget_keyboard, back_complete_edit_name_keyboard
 from budget.database import set_new_budget_description
 from budget.database import set_new_budget_name
 
@@ -61,11 +61,13 @@ async def process_edit_budget_name_function(message: Message, state: FSMContext,
 async def edit_description_budget_function(callback: CallbackQuery, state: FSMContext, edit_budget_states):
 
     # Отправляем сообщение и сохраняем идентификатор сообщения
-    bot_message = await callback.message.edit_text("Введите описание для бюджета:", reply_markup=back_complete_edit_name_keyboard)
+    bot_message = await callback.message.edit_text("Введите описание для бюджета:", reply_markup=back_edit_description_budget_keyboard)
     await state.update_data(bot_message_id=bot_message.message_id)
 
     await state.set_state(edit_budget_states.waiting_for_budget_new_description)
     await callback.answer()
+
+from budget.keyboards import back_edit_description_budget_keyboard
 
 async def process_edit_budget_description_function(message: Message, state: FSMContext, budget_id):
     budget_description = message.text
@@ -84,6 +86,6 @@ async def process_edit_budget_description_function(message: Message, state: FSMC
             chat_id=message.chat.id,
             message_id=bot_message_id,
             text="Не удалось получить идентификатор бюджета. Обновление невозможно.",
-            reply_markup=back_complete_edit_description_keyboard
+            reply_markup=back_edit_description_budget_keyboard
         )
     await state.clear()  # Очистка состояния

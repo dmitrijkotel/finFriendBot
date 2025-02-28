@@ -10,7 +10,15 @@ skip_description_income_keyboard = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 back_expenses_categories_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='Назад', callback_data='back_expenses_categories_button')]
+    [InlineKeyboardButton(text='Вернуться назад', callback_data='back_expenses_categories_button')]
+])
+
+continue_expenses_categories_keyboards = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Продолжить', callback_data='continue_expenses_categories_button')]
+])
+
+continue_income_categories_keyboards = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Продолжить', callback_data='continue_income_categories_button')]
 ])
 
 skip_description_expenses_keyboard = InlineKeyboardMarkup(inline_keyboard=[
