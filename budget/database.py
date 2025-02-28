@@ -26,6 +26,9 @@ async def get_budget_details_db(budget_id):
 async def delete_budget_db(budget_id, message):
     async with aiosqlite.connect('database.db') as db:
         try:
+            # Включаем поддержку внешних ключей
+            await db.execute("PRAGMA foreign_keys = ON;")
+
             # Проверка существования бюджета с данным budget_id
             async with db.execute("SELECT id FROM budgets WHERE id = ?", (budget_id,)) as cursor:
                 budget_exists = await cursor.fetchone()
@@ -33,11 +36,11 @@ async def delete_budget_db(budget_id, message):
                     await message.edit_text("Бюджет не найден!", reply_markup=back_complete_keyboard)
                     return
 
-                    # Удаление бюджета
-            async with db.execute("DELETE FROM budgets WHERE id = ?", (budget_id,)) as cursor:
-                await db.commit()
-                await message.edit_text('Бюджет успешно удалён!',
-                                     reply_markup=back_complete_keyboard)  # Сообщение об успешном удалении
+            # Удаление бюджета (каскадное удаление должно удалить связанные категории и транзакции)
+            await db.execute("DELETE FROM budgets WHERE id = ?", (budget_id,))
+            await db.commit()
+
+            await message.edit_text('Бюджет успешно удалён!', reply_markup=back_complete_keyboard)
 
         except (sqlite3.Error, aiosqlite.Error) as e:  # Ловим ошибки базы данных
             print(f"Ошибка базы данных: {e}")  # Выводим ошибку в консоль
