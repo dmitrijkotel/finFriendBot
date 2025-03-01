@@ -14,6 +14,7 @@ from budget.finance.expense.view_expenses_category import view_expenses_category
 from budget.finance.income.add_income_categories import create_income_category_router
 from budget.finance.income.view_income_categories import view_income_category_router
 from budget.finance.view_transactions import view_transactions_router
+from budget.report.handlers import report_router
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
@@ -32,6 +33,7 @@ async def main():
     dp.include_router(create_income_category_router)
     dp.include_router(view_income_category_router)
     dp.include_router(view_transactions_router)
+    dp.include_router(report_router)
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
