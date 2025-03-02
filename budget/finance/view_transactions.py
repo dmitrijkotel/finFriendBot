@@ -46,14 +46,14 @@ async def create_transactions_keyboard(transactions: list, back_button_callback:
 
     for transaction in transactions:
         trans_id, amount, date = transaction
-        button_text = f"{date} - {amount}₽"
+        button_text = f"📅 {date} - 💰 {amount}₽"
         keyboard.add(InlineKeyboardButton(text=button_text, callback_data=f"transaction_{trans_id}"))
 
     keyboard.adjust(1)
     keyboard.row(
-        InlineKeyboardButton(text="Назад", callback_data=back_button_callback),
-        InlineKeyboardButton(text="Добавить", callback_data=add_button_callback),
-        InlineKeyboardButton(text="Удалить", callback_data=delete_button_callback)
+        InlineKeyboardButton(text="🔙 Назад", callback_data=back_button_callback),
+        InlineKeyboardButton(text="➕ Добавить", callback_data=add_button_callback),
+        InlineKeyboardButton(text="🗑 Удалить", callback_data=delete_button_callback)
     )
 
     return keyboard.as_markup()
@@ -69,9 +69,9 @@ async def view_transactions(message: Message, category_id: int, transaction_type
     )
 
     if not transactions:
-        await message.edit_text(f"Нет транзакций в этой категории.", reply_markup=keyboard)
+        await message.edit_text(f"❌ Нет транзакций в этой категории.", reply_markup=keyboard)
     else:
-        await message.edit_text(f"Список транзакций ({'расходов' if transaction_type == TRANSACTION_TYPE_EXPENSE else 'доходов'}):", reply_markup=keyboard)
+        await message.edit_text(f"📜 Список транзакций ({'расходов' if transaction_type == TRANSACTION_TYPE_EXPENSE else 'доходов'}):", reply_markup=keyboard)
 
 # Обработчик возврата в меню бюджетов
 @view_transactions_router.callback_query(F.data.endswith('_transactions_button'))
@@ -108,8 +108,8 @@ async def get_transaction_details_db(transaction_id: int):
 # Функция для создания клавиатуры деталей транзакции
 def create_transaction_detail_keyboard(transaction_id: int, back_button_callback: str):
     keyboard = InlineKeyboardBuilder()
-    keyboard.add(InlineKeyboardButton(text='Назад', callback_data=back_button_callback))
-    keyboard.add(InlineKeyboardButton(text='Удалить', callback_data=f'delete_transaction_{transaction_id}'))
+    keyboard.add(InlineKeyboardButton(text='🔙 Назад', callback_data=back_button_callback))
+    keyboard.add(InlineKeyboardButton(text='🗑 Удалить', callback_data=f'delete_transaction_{transaction_id}'))
     return keyboard.as_markup()
 
 # Обработчик просмотра деталей транзакции
@@ -121,13 +121,13 @@ async def show_transaction_detail(callback: CallbackQuery):
     if transaction:
         amount, date, description, category = transaction
         response = (
-            f"Категория: {category}\n"
-            f"Сумма: {amount}₽\n"
-            f"Дата: {date}\n"
-            f"Описание: {description or 'нет описания'}"
+             f"📌 Категория: {category}\n"
+            f"💰 Сумма: {amount}₽\n"
+            f"📅 Дата: {date}\n"
+            f"📝 Описание: {description or 'нет описания'}"
         )
     else:
-        response = "Транзакция не найдена"
+        response = "❌ Транзакция не найдена"
 
     keyboard = create_transaction_detail_keyboard(transaction_id, back_button_callback='back_from_transaction_detail')
     await callback.message.edit_text(response, reply_markup=keyboard)
@@ -142,7 +142,7 @@ async def delete_transaction_handler(callback: CallbackQuery):
             await conn.execute("DELETE FROM transactions WHERE id = ?", (transaction_id,))
             await conn.commit()
 
-        await callback.message.edit_text("Транзакция успешно удалена.", reply_markup=create_return_keyboard())
+        await callback.message.edit_text("✅ Транзакция успешно удалена.", reply_markup=create_return_keyboard())
     except (ValueError, IndexError, aiosqlite.Error) as e:
         await callback.answer("Ошибка: не удалось удалить транзакцию.")
         logger.error(f"Ошибка при удалении транзакции: {e}")
@@ -163,7 +163,7 @@ async def delete_category_handler(callback: CallbackQuery):
             await conn.execute("DELETE FROM categories WHERE id = ?", (category_id,))
             await conn.commit()
 
-        await callback.message.edit_text(f"Категория и все связанные транзакции успешно удалены.", reply_markup=create_return_keyboard())
+        await callback.message.edit_text(f"✅ Категория и все связанные транзакции успешно удалены.", reply_markup=create_return_keyboard())
     except (ValueError, IndexError, aiosqlite.Error) as e:
         await callback.answer("Ошибка: не удалось удалить категорию.")
         logger.error(f"Ошибка при удалении категории: {e}")
@@ -180,7 +180,7 @@ async def add_transaction_handler(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Ошибка: идентификатор категории или тип транзакции не найден.", show_alert=True)
         return
 
-    bot_message = await callback.message.edit_text("Введите сумму транзакции:", reply_markup=back_trans)
+    bot_message = await callback.message.edit_text("📝 Введите сумму транзакции:", reply_markup=back_trans)
     await state.update_data(bot_message_id=bot_message.message_id, category_id=category_id, transaction_type=transaction_type)
     await state.set_state(FormTransaction.waiting_for_amount)
     await callback.answer()
@@ -200,7 +200,7 @@ async def process_amount(message: Message, state: FSMContext):
             await message.bot.edit_message_text(
                 chat_id=message.chat.id,
                 message_id=bot_message_id,
-                text="Введите описание транзакции:",
+                text="📝 Введите описание транзакции:",
                 reply_markup=back_trans
             )
 
@@ -212,7 +212,7 @@ async def process_amount(message: Message, state: FSMContext):
             await message.bot.edit_message_text(
                 chat_id=message.chat.id,
                 message_id=bot_message_id,
-                text="Пожалуйста, введите корректную сумму.",
+                text="⚠ Пожалуйста, введите корректную сумму.",
                 reply_markup=back_trans
             )
 
@@ -242,7 +242,7 @@ async def create_transaction_description(message: Message, state: FSMContext):
                 await message.bot.edit_message_text(
                     chat_id=message.chat.id,
                     message_id=bot_message_id,
-                    text="Транзакция выполнена успешно!",
+                    text="✅ Транзакция выполнена успешно!",
                     reply_markup=create_return_keyboard()
                 )
         except Exception as e:
@@ -258,7 +258,7 @@ async def create_transaction_description(message: Message, state: FSMContext):
 # Функция для создания клавиатуры возврата
 def create_return_keyboard():
     keyboard = InlineKeyboardBuilder()
-    keyboard.add(InlineKeyboardButton(text="Вернуться", callback_data="return_to_finance_menu_budget"))
+    keyboard.add(InlineKeyboardButton(text="↩️ Вернуться", callback_data="return_to_finance_menu_budget"))
     return keyboard.as_markup()
 
 # Обработчик возврата в меню бюджетов

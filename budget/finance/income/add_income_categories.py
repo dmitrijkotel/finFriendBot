@@ -8,14 +8,11 @@ from budget.handlers.view_budget import budget_menu_finance
 
 create_income_category_router = Router()
 
-
 class CreateIncomeCategoryStates(StatesGroup):
     waiting_for_category_title = State()
     stop = State()
 
-
 budget_id_g = 0
-
 
 def add_income_category_db(budget_id, category_name):
     conn = sqlite3.connect('database.db')
@@ -26,14 +23,13 @@ def add_income_category_db(budget_id, category_name):
             VALUES (?, ?, 'income')""",
                        (budget_id, category_name))
         conn.commit()
-        return "Категория дохода успешно добавлена!"
+        return "✅ Категория дохода успешно добавлена!"
     except Exception as e:
         conn.rollback()
-        return f"Произошла ошибка: {str(e)}"
+        return f"❌ Произошла ошибка: {str(e)}"
     finally:
         cursor.close()
         conn.close()
-
 
 @create_income_category_router.callback_query(F.data == 'add_income_category_button')
 async def create_income_category_handler(callback: CallbackQuery, state: FSMContext):
@@ -42,16 +38,15 @@ async def create_income_category_handler(callback: CallbackQuery, state: FSMCont
     print(f"Создание категории: budget_id = {budget_id}")  # Отладка
 
     if not budget_id:
-        await callback.answer("Ошибка: идентификатор бюджета не найден.")
+        await callback.answer("❌ Ошибка: идентификатор бюджета не найден.")
         return
 
-    bot_message = await callback.message.edit_text("Введите название для категории дохода:", reply_markup=kb_back)
+    bot_message = await callback.message.edit_text("📝 Введите название для категории дохода:", reply_markup=kb_back)
     await state.update_data(bot_message_id=bot_message.message_id, budget_id=budget_id)
     global budget_id_g
     budget_id_g = budget_id
     await state.set_state(CreateIncomeCategoryStates.waiting_for_category_title)
     await callback.answer()
-
 
 @create_income_category_router.message(CreateIncomeCategoryStates.waiting_for_category_title)
 async def create_income_category_name(message: Message, state: FSMContext):
@@ -69,16 +64,22 @@ async def create_income_category_name(message: Message, state: FSMContext):
     bot_message_id = user_data.get('bot_message_id')
 
     # Добавляем категорию в БД
-    add_income_category_db(budget_id, category_name)
+    result = add_income_category_db(budget_id, category_name)
 
     await state.set_state(CreateIncomeCategoryStates.stop)
 
     # Если у нас есть ID сообщения, редактируем его
     if bot_message_id:
         try:
+            await message.bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=bot_message_id,
+                text=result,
+                reply_markup=kb_back
+            )
             await budget_menu_finance(message, budget_id, bot_message_id)
         except Exception as e:
-            print(f"Ошибка при редактировании сообщения: {e}")
+            print(f"❌ Ошибка при редактировании сообщения: {e}")
     else:
         # Если нет сохранённого ID, отправляем новое меню и запоминаем его
         sent_message = await budget_menu_finance(message, budget_id)

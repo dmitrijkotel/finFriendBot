@@ -14,7 +14,7 @@ class create_budget_states(StatesGroup):
 @create_budget_router.callback_query(F.data == 'create_budget_button')
 async def create_budget_handler(callback: CallbackQuery, state: FSMContext):
     # Отправляем сообщение с просьбой ввести название бюджета и сохраняем идентификатор
-    bot_message = await callback.message.edit_text("Введите название для бюджета:", reply_markup=back_keyboard)
+    bot_message = await callback.message.edit_text("📝 Введите название для бюджета:", reply_markup=back_keyboard)
     await state.update_data(bot_message_id=bot_message.message_id)
     await state.set_state(create_budget_states.waiting_for_budget_title)
     await callback.answer()
@@ -34,7 +34,7 @@ async def create_budget_name(message: Message, state: FSMContext):
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
         message_id=bot_message_id,
-        text="Введите описание бюджета:",
+        text="📝 Введите описание бюджета:",
         reply_markup=add_budget_description_keyboard
     )
     await state.set_state(create_budget_states.waiting_for_budget_description)
@@ -49,7 +49,7 @@ async def create_budget_description(message: Message, state: FSMContext):
         await message.bot.edit_message_text(
             chat_id=message.chat.id,
             message_id=bot_message_id,
-            text="Описание бюджета пропущено.",
+            text="📝 Описание бюджета пропущено.",
             reply_markup=budget_menu_keyboard
         )
     else:

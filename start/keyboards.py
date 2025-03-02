@@ -4,5 +4,5 @@ from aiogram.types import (
 )
 
 registration_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='Зарегистрироваться', callback_data='reg')]
+    [InlineKeyboardButton(text='📝 Зарегистрироваться', callback_data='reg')]
 ])

@@ -38,7 +38,7 @@ async def create_income_categories_keyboard(categories):
         transactions_sum = await get_transactions_sum_by_category(category_id)
         
         # Формируем текст кнопки с названием категории и суммой транзакций
-        button_text = f"{category_name} ({transactions_sum}₽)"
+        button_text = f"📂 {category_name} ({transactions_sum}₽)"
         
         # Создаем кнопку
         button = InlineKeyboardButton(text=button_text, callback_data=f"category_income_{category_id}")
@@ -48,8 +48,8 @@ async def create_income_categories_keyboard(categories):
 
     # Добавить кнопки "Добавить категорию" и "Назад" в новую строку
     keyboard.row(
-        InlineKeyboardButton(text="Добавить", callback_data="add_income_category_button"),
-        InlineKeyboardButton(text="Назад", callback_data="back_income_categories_button")
+        InlineKeyboardButton(text="➕ Добавить", callback_data="add_income_category_button"),
+        InlineKeyboardButton(text="🔙 Назад", callback_data="back_income_categories_button")
     )
 
     # Возвращаем клавиатуру
@@ -60,9 +60,9 @@ async def view_income_categories(message: Message, budget_id: int):
     keyboard = await create_income_categories_keyboard(categories)
 
     if not categories:
-        await message.edit_text("Нет доступных категорий доходов.", reply_markup=keyboard)
+        await message.edit_text("📂 Нет доступных категорий доходов.", reply_markup=keyboard)
     else:
-        await message.edit_text("Выберите категорию дохода:", reply_markup=keyboard)
+        await message.edit_text("📂 Выберите категорию дохода:", reply_markup=keyboard)
 
 @view_income_category_router.callback_query(F.data == 'back_income_categories_button')
 async def back_button_handler(callback: CallbackQuery, state: FSMContext):
@@ -77,7 +77,7 @@ async def view_income_categories_handler(callback: CallbackQuery, state: FSMCont
     budget_id = user_data.get('budget_id')
 
     if budget_id is None:
-        await callback.answer("Ошибка: идентификатор бюджета не найден.")
+        await callback.answer("❌ Ошибка: идентификатор бюджета не найден.")
         return
 
     await view_income_categories(callback.message, budget_id)
@@ -88,7 +88,7 @@ async def get_category_details_db(category_id: int):
             return await cursor.fetchone()
 
 income_category_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='Назад', callback_data='back_from_all_income_categories_button')]
+    [InlineKeyboardButton(text='🔙 Назад', callback_data='back_from_all_income_categories_button')]
 ])
 
 @view_income_category_router.callback_query(F.data == 'back_from_all_income_categories_button')
@@ -97,9 +97,8 @@ async def back_from_all_income_categories_handler(callback: CallbackQuery, state
     budget_id = user_data.get('budget_id')
 
     if budget_id is None:
-        await callback.answer("Ошибка: идентификатор бюджета не найден.")
+        await callback.answer("❌ Ошибка: идентификатор бюджета не найден.")
         return
 
     await callback.message.delete()
     await view_income_categories(callback.message, budget_id)
-

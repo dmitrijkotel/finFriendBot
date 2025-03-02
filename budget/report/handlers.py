@@ -24,7 +24,7 @@ async def report_menu(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer("Ошибка: бюджет не найден.")
         return
 
-    await callback.message.edit_text("Выберите формат файла для отчёта:", reply_markup=report_format_keyboard)
+    await callback.message.edit_text("📊 Выберите формат файла для отчёта:", reply_markup=report_format_keyboard)
     await callback.answer()
 
 async def send_report(callback: CallbackQuery, file_stream, filename, caption, state: FSMContext):
@@ -101,7 +101,7 @@ async def report_menu_fun(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer("Ошибка: бюджет не найден.")
         return
 
-    await callback.message.answer("Выберите формат файла для отчёта:", reply_markup=report_format_keyboard)
+    await callback.message.answer("📊 Выберите формат файла для отчёта:", reply_markup=report_format_keyboard)
     await callback.answer()
 
 @report_router.callback_query(F.data == 'back_report_button')

@@ -39,7 +39,7 @@ async def create_expenses_categories_keyboard(categories):
         transactions_sum = await get_transactions_sum_by_category(category_id)
         
         # Формируем текст кнопки с названием категории и суммой транзакций
-        button_text = f"{category_name} ({transactions_sum}₽)"
+        button_text = f"📂 {category_name} ({transactions_sum}₽)"
         
         # Создаем кнопку
         button = InlineKeyboardButton(text=button_text, callback_data=f"category_income_{category_id}")
@@ -49,8 +49,8 @@ async def create_expenses_categories_keyboard(categories):
 
     # Добавить кнопки "Добавить категорию" и "Назад" в новую строку
     keyboard.row(
-        InlineKeyboardButton(text="Добавить", callback_data="add_expenses_category_button"),
-        InlineKeyboardButton(text="Назад", callback_data="back_expenses_categories_button")
+        InlineKeyboardButton(text="➕ Добавить", callback_data="add_expenses_category_button"),
+        InlineKeyboardButton(text="🔙 Назад", callback_data="back_expenses_categories_button")
     )
 
     # Возвращаем клавиатуру
@@ -61,9 +61,9 @@ async def view_expenses_categories(message: Message, budget_id: int):
     keyboard = await create_expenses_categories_keyboard(categories)
 
     if not categories:
-        await message.edit_text("Нет доступных категорий расходов.", reply_markup=keyboard)
+        await message.edit_text("📂 Нет доступных категорий расходов.", reply_markup=keyboard)
     else:
-        await message.edit_text("Выберите категорию расхода:", reply_markup=keyboard)
+        await message.edit_text("📂 Выберите категорию расхода:", reply_markup=keyboard)
 
 async def menu_budgets(callback):
     telegram_id = callback.from_user.id
@@ -73,11 +73,11 @@ async def menu_budgets(callback):
     budgets = await get_budgets_from_db(telegram_id)
 
     if not budgets:
-        return await callback.message.answer("Нет доступных бюджетов.", reply_markup=back_menu)
+        return await callback.message.answer("📂 Нет доступных бюджетов.", reply_markup=back_menu)
 
     keyboard = await create_keyboard(budgets)
 
-    await callback.message.edit_text("Выберите бюджет:", reply_markup=keyboard)
+    await callback.message.edit_text("📂 Выберите бюджет:", reply_markup=keyboard)
 
 @view_expenses_category_router.callback_query(F.data == 'back_expenses_categories_button')
 async def back_button_handler(callback: CallbackQuery, state: FSMContext):
@@ -92,7 +92,7 @@ async def view_expenses_categories_handler(callback: CallbackQuery, state: FSMCo
     budget_id = user_data.get('budget_id')
 
     if budget_id is None:
-        await callback.answer("Ошибка: идентификатор бюджета не найден.")
+        await callback.answer("❌ Ошибка: идентификатор бюджета не найден.")
         return
 
     await view_expenses_categories(callback.message, budget_id)
@@ -103,7 +103,7 @@ async def get_category_details_db(category_id: int):
             return await cursor.fetchone()
 
 income_category_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='Назад', callback_data='back_from_all_expenses_categories_button')]
+    [InlineKeyboardButton(text='🔙 Назад', callback_data='back_from_all_expenses_categories_button')]
 ])
 
 @view_expenses_category_router.callback_query(F.data == 'back_from_all_expenses_categories_button')
@@ -112,7 +112,7 @@ async def back_from_all_expenses_categories_handler(callback: CallbackQuery, sta
     budget_id = user_data.get('budget_id')
 
     if budget_id is None:
-        await callback.answer("Ошибка: идентификатор бюджета не найден.")
+        await callback.answer("❌ Ошибка: идентификатор бюджета не найден.")
         return
 
     await callback.message.delete()
@@ -128,9 +128,9 @@ async def budget_menu_finance(event: Union[Message, CallbackQuery], budget_id):
         budget_details = await get_budget_details_db(budget_id)
         if budget_details:
             budget_name, description = budget_details
-            response_message = f"Название:    {budget_name}\nОписание:    {description}\nБаланс:    {balance}₽" if description else f"Название:    {budget_name}\nБаланс:    {balance}₽"
+            response_message = f"📋 Название: {budget_name}\n📝 Описание: {description}\n💰 Баланс: {balance}₽" if description else f"📋 Название: {budget_name}\n💰 Баланс: {balance}₽"
         else:
-            response_message = "Бюджет не найден."
+            response_message = "❌ Бюджет не найден."
 
         keyboard = await create_actions_budget_keyboard(budget_id)
 
@@ -141,5 +141,5 @@ async def budget_menu_finance(event: Union[Message, CallbackQuery], budget_id):
 
     except Exception as e:
         if isinstance(event, CallbackQuery):
-            await event.answer("Произошла ошибка. Попробуйте позже.")
+            await event.answer("❌ Произошла ошибка. Попробуйте позже.")
         print(f"Ошибка при обработке запроса: {e}")
