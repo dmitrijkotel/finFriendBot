@@ -1,10 +1,15 @@
 import sqlite3
+import logging
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
 from budget.finance.keyboards import back_income_categories_keyboard as kb_back
 from budget.handlers.view_budget import budget_menu_finance
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 create_income_category_router = Router()
 
@@ -23,9 +28,11 @@ def add_income_category_db(budget_id, category_name):
             VALUES (?, ?, 'income')""",
                        (budget_id, category_name))
         conn.commit()
+        logger.info(f"Категория '{category_name}' добавлена в БД для budget_id {budget_id}")
         return "✅ Категория дохода успешно добавлена!"
     except Exception as e:
         conn.rollback()
+        logger.error(f"Ошибка при добавлении категории: {e}")
         return f"❌ Произошла ошибка: {str(e)}"
     finally:
         cursor.close()
@@ -35,10 +42,11 @@ def add_income_category_db(budget_id, category_name):
 async def create_income_category_handler(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
     budget_id = user_data.get('budget_id')
-    print(f"Создание категории: budget_id = {budget_id}")  # Отладка
+    logger.info(f"Создание категории: budget_id = {budget_id}")
 
     if not budget_id:
         await callback.answer("❌ Ошибка: идентификатор бюджета не найден.")
+        logger.error("Ошибка: идентификатор бюджета не найден.")
         return
 
     bot_message = await callback.message.edit_text("📝 Введите название для категории дохода:", reply_markup=kb_back)
@@ -55,20 +63,15 @@ async def create_income_category_name(message: Message, state: FSMContext):
 
     category_name = message.text
     await state.update_data(category_name=category_name)
+    logger.info(f"Пользователь ввел название категории: {category_name}")
 
-    print(f"Название категории: {category_name}")  # Отладка
-
-    await message.delete()  # Удаляем сообщение пользователя
-
+    await message.delete()
     user_data = await state.get_data()
     bot_message_id = user_data.get('bot_message_id')
 
-    # Добавляем категорию в БД
     result = add_income_category_db(budget_id, category_name)
-
     await state.set_state(CreateIncomeCategoryStates.stop)
 
-    # Если у нас есть ID сообщения, редактируем его
     if bot_message_id:
         try:
             await message.bot.edit_message_text(
@@ -79,8 +82,7 @@ async def create_income_category_name(message: Message, state: FSMContext):
             )
             await budget_menu_finance(message, budget_id, bot_message_id)
         except Exception as e:
-            print(f"❌ Ошибка при редактировании сообщения: {e}")
+            logger.error(f"Ошибка при редактировании сообщения: {e}")
     else:
-        # Если нет сохранённого ID, отправляем новое меню и запоминаем его
         sent_message = await budget_menu_finance(message, budget_id)
         await state.update_data(bot_message_id=sent_message.message_id)

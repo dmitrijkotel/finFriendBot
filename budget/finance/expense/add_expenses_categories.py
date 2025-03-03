@@ -1,10 +1,15 @@
 import sqlite3
+import logging
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
 from budget.handlers.view_budget import budget_menu_finance
 from budget.finance.keyboards import back_expenses_categories_keyboard as kb_back
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 create_expenses_category_router = Router()
 
@@ -23,9 +28,11 @@ def add_expenses_category_db(budget_id, category_name):
             VALUES (?, ?, 'expense')""",
                        (budget_id, category_name))
         conn.commit()
+        logger.info(f"Категория расхода '{category_name}' добавлена в бюджет ID {budget_id}")
         return "✅ Категория расхода успешно добавлена!"
     except Exception as e:
         conn.rollback()
+        logger.error(f"Ошибка при добавлении категории расхода: {e}")
         return f"❌ Произошла ошибка: {str(e)}"
     finally:
         cursor.close()
@@ -35,7 +42,7 @@ def add_expenses_category_db(budget_id, category_name):
 async def create_expenses_category_handler(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
     budget_id = user_data.get('budget_id')
-    print(f"Создание категории: budget_id = {budget_id}")  # Отладка
+    logger.info(f"Запрос на создание категории расходов. budget_id = {budget_id}")
 
     if not budget_id:
         await callback.answer("❌ Ошибка: идентификатор бюджета не найден.")
@@ -55,8 +62,7 @@ async def create_expenses_category_name(message: Message, state: FSMContext):
 
     category_name = message.text
     await state.update_data(category_name=category_name)
-
-    print(f"Название категории: {category_name}")  # Отладка
+    logger.info(f"Пользователь ввел название категории: {category_name}")
 
     await message.delete()  # Удаляем сообщение пользователя
 
@@ -79,7 +85,7 @@ async def create_expenses_category_name(message: Message, state: FSMContext):
             )
             await budget_menu_finance(message, budget_id, bot_message_id)
         except Exception as e:
-            print(f"❌ Ошибка при редактировании сообщения: {e}")
+            logger.error(f"Ошибка при редактировании сообщения: {e}")
     else:
         # Если нет сохранённого ID, отправляем новое меню и запоминаем его
         sent_message = await budget_menu_finance(message, budget_id)
